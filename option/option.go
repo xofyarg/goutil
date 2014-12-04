@@ -14,19 +14,15 @@ import (
 type Options struct {
 	set   *flag.FlagSet
 	store map[string]interface{}
-	path  string
+	cli   map[string]struct{}
 }
 
 func NewOpt(name string) *Options {
 	return &Options{
 		set:   flag.NewFlagSet(name, flag.ExitOnError),
 		store: make(map[string]interface{}),
+		cli:   make(map[string]struct{}),
 	}
-}
-
-// parse config file
-func (o *Options) SetConfig(path string) {
-	o.path = path
 }
 
 func (o *Options) Bool(name string, value bool, usage string) {
@@ -94,17 +90,11 @@ func (o *Options) GetString(name string) string {
 }
 
 func (o *Options) Parse(args []string) error {
-	if o.path != "" {
-		if err := o.loadConfig(); err != nil {
-			return err
-		}
-	}
-
 	return o.set.Parse(args)
 }
 
-func (o *Options) loadConfig() error {
-	f, err := os.Open(o.path)
+func (o *Options) LoadConfig(name string) error {
+	f, err := os.Open(name)
 	if err != nil {
 		return err
 	}
@@ -126,6 +116,11 @@ func (o *Options) loadConfig() error {
 		key = strings.ToLower(key)
 		value := strings.Trim(parts[1], " '\"")
 
+		// ignore cli only options
+		if _, ok := o.cli[key]; ok {
+			continue
+		}
+
 		if _, ok := o.store[key]; !ok {
 			msg := fmt.Sprintf("flag provided but not defined: %s", key)
 			return errors.New(msg)
@@ -138,10 +133,20 @@ func (o *Options) loadConfig() error {
 	return nil
 }
 
+// mark args only available in command line interface
+func (o *Options) CliOnly(keys []string) {
+	for _, k := range keys {
+		o.cli[k] = struct{}{}
+	}
+}
+
 // dump out default config file
 func (o *Options) Defaults() string {
 	b := &bytes.Buffer{}
 	f := func(f *flag.Flag) {
+		if _, ok := o.cli[f.Name]; ok {
+			return
+		}
 		b.WriteString(fmt.Sprintf("# %s\n", f.Usage))
 		b.WriteString(fmt.Sprintf("%s = %s\n", f.Name, f.DefValue))
 	}
