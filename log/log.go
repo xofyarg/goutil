@@ -1,7 +1,7 @@
 // Log:
 //
 // Simple wrapper for standard log package with level control.
-package util
+package log
 
 import (
 	"errors"
