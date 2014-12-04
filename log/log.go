@@ -4,37 +4,39 @@
 package util
 
 import (
+	"errors"
 	"fmt"
-	"log"
+	olog "log"
 	"log/syslog"
 	"os"
 	"path"
 	"runtime"
+	"strings"
 )
 
 const (
 	none uint8 = iota
-	Fatal
-	Warn
-	Info
-	Debug
+	fatal
+	warn
+	info
+	debug
 )
 
 // global verbose log level
-var verboseLevel = Warn
+var verboseLevel = warn
 
 // global switch whether to use syslog
 var syslogWriter *syslog.Writer
 
 // mapping between numberic log level and their corresponding one
 var levelStr = map[uint8]string{
-	Fatal: "FATL",
-	Warn:  "WARN",
-	Info:  "INFO",
-	Debug: "DBUG",
+	fatal: "FATL",
+	warn:  "WARN",
+	info:  "INFO",
+	debug: "DBUG",
 }
 
-func Log(l uint8, v ...interface{}) {
+func log(l uint8, v ...interface{}) {
 	if l > verboseLevel {
 		return
 	}
@@ -49,18 +51,18 @@ func Log(l uint8, v ...interface{}) {
 		}
 
 		switch l {
-		case Fatal:
+		case fatal:
 			syslogWriter.Crit(msg)
-		case Warn:
+		case warn:
 			syslogWriter.Warning(msg)
-		case Info:
+		case info:
 			syslogWriter.Info(msg)
-		case Debug:
+		case debug:
 			syslogWriter.Debug(msg)
 		}
 	} else {
 		var preamble string
-		if l == Debug {
+		if l == debug {
 			_, file, line, _ := runtime.Caller(1)
 			preamble = fmt.Sprintf("[%s %s:%d] ", levelStr[l], path.Base(file), line)
 		} else {
@@ -69,9 +71,9 @@ func Log(l uint8, v ...interface{}) {
 
 		n := len(v)
 		if n == 1 {
-			log.Printf(preamble+"%v", v[0])
+			olog.Printf(preamble+"%v", v[0])
 		} else {
-			log.Printf(preamble+v[0].(string), v[1:]...)
+			olog.Printf(preamble+v[0].(string), v[1:]...)
 		}
 	}
 }
@@ -79,15 +81,46 @@ func Log(l uint8, v ...interface{}) {
 // Set the maximum verbose level.
 //
 // Available levels are: Fatal, Warn, Info, Debug.
-func SetLevel(l uint8) {
-	verboseLevel = l
+// func SetLevel(l uint8) {
+// 	verboseLevel = l
+// }
+func SetLevel(l string) error {
+	switch strings.ToLower(l) {
+	case "fatal":
+		verboseLevel = fatal
+	case "warn":
+		verboseLevel = warn
+	case "info":
+		verboseLevel = info
+	case "debug":
+		verboseLevel = debug
+	default:
+		return errors.New("invalid log level")
+	}
+	return nil
 }
 
 func UseSyslog() {
 	w, err := syslog.New(syslog.LOG_INFO|syslog.LOG_USER,
 		fmt.Sprintf("%s", path.Base(os.Args[0])))
 	if err != nil {
-		Log(Fatal, "cannot open syslog for write")
+		log(fatal, "cannot open syslog for write")
 	}
 	syslogWriter = w
+}
+
+func Fatal(v ...interface{}) {
+	log(fatal, v...)
+}
+
+func Warn(v ...interface{}) {
+	log(warn, v...)
+}
+
+func Info(v ...interface{}) {
+	log(info, v...)
+}
+
+func Debug(v ...interface{}) {
+	log(debug, v...)
 }
