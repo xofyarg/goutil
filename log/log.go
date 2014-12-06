@@ -1,6 +1,17 @@
-// Log:
+// Simple wrapper for standard log and syslog package with level
+// control.
 //
-// Simple wrapper for standard log package with level control.
+// Features:
+//   1. level control. use SetLevel() to change level.
+//   2. combined the logf and log function. log for one argument, logf
+//      for multiple arguments.
+//   3. output source file and line number information in debug log.
+//
+// Note:
+//   1. level supported: fatal, warn, info, debug(with source file
+//      information).
+//   2. syslog feature is not supported by windows.
+//
 package log
 
 import (
@@ -42,6 +53,7 @@ type Logger struct {
 	nest      int         // call nest level
 }
 
+// create a logger with different destination and/or log level
 func NewLogger() *Logger {
 	return &Logger{
 		level:     warn,
@@ -57,38 +69,49 @@ func init() {
 	defaultLogger.nest = 3
 }
 
+// set log level for default logger.
+//
+// lvl can be one of this: "debug", "info", "warn", "fatal"
 func SetLevel(lvl string) error {
 	return defaultLogger.SetLevel(lvl)
 }
 
+// log fatal message for default logger
 func Fatal(v ...interface{}) {
 	defaultLogger.Fatal(v...)
 }
 
+// log warning message for default logger
 func Warn(v ...interface{}) {
 	defaultLogger.Warn(v...)
 }
 
+// log info message for default logger
 func Info(v ...interface{}) {
 	defaultLogger.Info(v...)
 }
 
+// log debug message for default logger
 func Debug(v ...interface{}) {
 	defaultLogger.Debug(v...)
 }
 
+// log fatal message
 func (l *Logger) Fatal(v ...interface{}) {
 	l.log(fatal, v...)
 }
 
+// log warnning message
 func (l *Logger) Warn(v ...interface{}) {
 	l.log(warn, v...)
 }
 
+// log info message
 func (l *Logger) Info(v ...interface{}) {
 	l.log(info, v...)
 }
 
+// log debug message
 func (l *Logger) Debug(v ...interface{}) {
 	l.log(debug, v...)
 }
@@ -120,7 +143,9 @@ func (l *Logger) log(lvl level, v ...interface{}) {
 	}
 }
 
-// Set the maximum verbose level.
+// set log level for logger l.
+//
+// lvl can be one of this: "debug", "info", "warn", "fatal"
 func (l *Logger) SetLevel(lvl string) error {
 	switch strings.ToLower(lvl) {
 	case "fatal":

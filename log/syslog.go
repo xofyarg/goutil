@@ -9,6 +9,8 @@ import (
 	"path"
 )
 
+// write log to syslog with default settings:
+//   syslog.LOG_INFO|syslog.LOG_USER
 func (l *Logger) UseSyslog() error {
 	l.useSyslog = true
 	if l.w == nil {
