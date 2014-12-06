@@ -39,12 +39,14 @@ type Logger struct {
 	level     level
 	useSyslog bool
 	w         interface{} // syslog writer
+	nest      int         // call nest level
 }
 
 func NewLogger() *Logger {
 	return &Logger{
 		level:     warn,
 		useSyslog: false,
+		nest:      2,
 	}
 }
 
@@ -52,6 +54,7 @@ var defaultLogger *Logger
 
 func init() {
 	defaultLogger = NewLogger()
+	defaultLogger.nest = 3
 }
 
 func SetLevel(lvl string) error {
@@ -101,7 +104,7 @@ func (l *Logger) log(lvl level, v ...interface{}) {
 	} else {
 		var preamble string
 		if lvl == debug {
-			_, file, line, _ := runtime.Caller(1)
+			_, file, line, _ := runtime.Caller(l.nest)
 			preamble = fmt.Sprintf("[%s %s:%d] ", levelStr[lvl],
 				path.Base(file), line)
 		} else {
