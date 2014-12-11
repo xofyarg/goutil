@@ -7,18 +7,21 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 	"strings"
 	"time"
 )
 
 type Options struct {
+	name  string
 	set   *flag.FlagSet
 	store map[string]interface{}
 	cli   map[string]struct{}
 }
 
-func NewOpt(name string) *Options {
+func NewOption(name string) *Options {
 	return &Options{
+		name:  name,
 		set:   flag.NewFlagSet(name, flag.ExitOnError),
 		store: make(map[string]interface{}),
 		cli:   make(map[string]struct{}),
@@ -143,6 +146,11 @@ func (o *Options) CliOnly(keys []string) {
 // dump out default config file
 func (o *Options) Defaults() string {
 	b := &bytes.Buffer{}
+
+	b.WriteString(fmt.Sprintf(
+		"# auto generated configuration file for profile %s\n\n",
+		o.name))
+
 	f := func(f *flag.Flag) {
 		if _, ok := o.cli[f.Name]; ok {
 			return
@@ -152,4 +160,88 @@ func (o *Options) Defaults() string {
 	}
 	o.set.VisitAll(f)
 	return b.String()
+}
+
+var Default = NewOption(path.Base(os.Args[0]))
+
+func Bool(name string, value bool, usage string) {
+	Default.store[name] = Default.set.Bool(name, value, usage)
+}
+
+func GetBool(name string) bool {
+	return *Default.store[name].(*bool)
+}
+
+func Duration(name string, value time.Duration, usage string) {
+	Default.store[name] = Default.set.Duration(name, value, usage)
+}
+
+func GetDuration(name string) time.Duration {
+	return *Default.store[name].(*time.Duration)
+}
+
+func Float64(name string, value float64, usage string) {
+	Default.store[name] = Default.set.Float64(name, value, usage)
+}
+
+func GetFloat64(name string) float64 {
+	return *Default.store[name].(*float64)
+}
+
+func Int(name string, value int, usage string) {
+	Default.store[name] = Default.set.Int(name, value, usage)
+}
+
+func GetInt(name string) int {
+	return *Default.store[name].(*int)
+}
+
+func Uint(name string, value uint, usage string) {
+	Default.store[name] = Default.set.Uint(name, value, usage)
+}
+
+func GetUint(name string) uint {
+	return *Default.store[name].(*uint)
+}
+
+func Int64(name string, value int64, usage string) {
+	Default.store[name] = Default.set.Int64(name, value, usage)
+}
+
+func GetInt64(name string) int64 {
+	return *Default.store[name].(*int64)
+}
+
+func Uint64(name string, value uint64, usage string) {
+	Default.store[name] = Default.set.Uint64(name, value, usage)
+}
+
+func GetUint64(name string) uint64 {
+	return *Default.store[name].(*uint64)
+}
+
+func String(name string, value string, usage string) {
+	Default.store[name] = Default.set.String(name, value, usage)
+}
+
+func GetString(name string) string {
+	return *Default.store[name].(*string)
+}
+
+func Parse(args []string) error {
+	return Default.set.Parse(args)
+}
+
+func LoadConfig(name string) error {
+	return Default.LoadConfig(name)
+}
+
+// mark args only available in command line interface
+func CliOnly(keys []string) {
+	Default.CliOnly(keys)
+}
+
+// dump out default config file
+func Defaults() string {
+	return Default.Defaults()
 }
