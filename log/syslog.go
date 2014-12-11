@@ -45,3 +45,7 @@ func (l *Logger) writeSyslog(lvl level, v ...interface{}) {
 	}
 
 }
+
+func UseSyslog() error {
+	return defaultLogger.UseSyslog()
+}
