@@ -12,15 +12,15 @@ import (
 	"time"
 )
 
-type Options struct {
+type Option struct {
 	name  string
 	set   *flag.FlagSet
 	store map[string]interface{}
 	cli   map[string]struct{}
 }
 
-func NewOption(name string) *Options {
-	return &Options{
+func NewOption(name string) *Option {
+	return &Option{
 		name:  name,
 		set:   flag.NewFlagSet(name, flag.ExitOnError),
 		store: make(map[string]interface{}),
@@ -28,75 +28,75 @@ func NewOption(name string) *Options {
 	}
 }
 
-func (o *Options) Bool(name string, value bool, usage string) {
+func (o *Option) Bool(name string, value bool, usage string) {
 	o.store[name] = o.set.Bool(name, value, usage)
 }
 
-func (o *Options) GetBool(name string) bool {
+func (o *Option) GetBool(name string) bool {
 	return *o.store[name].(*bool)
 }
 
-func (o *Options) Duration(name string, value time.Duration, usage string) {
+func (o *Option) Duration(name string, value time.Duration, usage string) {
 	o.store[name] = o.set.Duration(name, value, usage)
 }
 
-func (o *Options) GetDuration(name string) time.Duration {
+func (o *Option) GetDuration(name string) time.Duration {
 	return *o.store[name].(*time.Duration)
 }
 
-func (o *Options) Float64(name string, value float64, usage string) {
+func (o *Option) Float64(name string, value float64, usage string) {
 	o.store[name] = o.set.Float64(name, value, usage)
 }
 
-func (o *Options) GetFloat64(name string) float64 {
+func (o *Option) GetFloat64(name string) float64 {
 	return *o.store[name].(*float64)
 }
 
-func (o *Options) Int(name string, value int, usage string) {
+func (o *Option) Int(name string, value int, usage string) {
 	o.store[name] = o.set.Int(name, value, usage)
 }
 
-func (o *Options) GetInt(name string) int {
+func (o *Option) GetInt(name string) int {
 	return *o.store[name].(*int)
 }
 
-func (o *Options) Uint(name string, value uint, usage string) {
+func (o *Option) Uint(name string, value uint, usage string) {
 	o.store[name] = o.set.Uint(name, value, usage)
 }
 
-func (o *Options) GetUint(name string) uint {
+func (o *Option) GetUint(name string) uint {
 	return *o.store[name].(*uint)
 }
 
-func (o *Options) Int64(name string, value int64, usage string) {
+func (o *Option) Int64(name string, value int64, usage string) {
 	o.store[name] = o.set.Int64(name, value, usage)
 }
 
-func (o *Options) GetInt64(name string) int64 {
+func (o *Option) GetInt64(name string) int64 {
 	return *o.store[name].(*int64)
 }
 
-func (o *Options) Uint64(name string, value uint64, usage string) {
+func (o *Option) Uint64(name string, value uint64, usage string) {
 	o.store[name] = o.set.Uint64(name, value, usage)
 }
 
-func (o *Options) GetUint64(name string) uint64 {
+func (o *Option) GetUint64(name string) uint64 {
 	return *o.store[name].(*uint64)
 }
 
-func (o *Options) String(name string, value string, usage string) {
+func (o *Option) String(name string, value string, usage string) {
 	o.store[name] = o.set.String(name, value, usage)
 }
 
-func (o *Options) GetString(name string) string {
+func (o *Option) GetString(name string) string {
 	return *o.store[name].(*string)
 }
 
-func (o *Options) Parse(args []string) error {
+func (o *Option) Parse(args []string) error {
 	return o.set.Parse(args)
 }
 
-func (o *Options) LoadConfig(name string) error {
+func (o *Option) LoadConfig(name string) error {
 	f, err := os.Open(name)
 	if err != nil {
 		return err
@@ -137,14 +137,14 @@ func (o *Options) LoadConfig(name string) error {
 }
 
 // mark args only available in command line interface
-func (o *Options) CliOnly(keys []string) {
+func (o *Option) CliOnly(keys []string) {
 	for _, k := range keys {
 		o.cli[k] = struct{}{}
 	}
 }
 
 // dump out default config file
-func (o *Options) Defaults() string {
+func (o *Option) Defaults() string {
 	b := &bytes.Buffer{}
 
 	b.WriteString(fmt.Sprintf(
@@ -228,8 +228,8 @@ func GetString(name string) string {
 	return *Default.store[name].(*string)
 }
 
-func Parse(args []string) error {
-	return Default.set.Parse(args)
+func Parse() error {
+	return Default.set.Parse(os.Args[1:])
 }
 
 func LoadConfig(name string) error {
