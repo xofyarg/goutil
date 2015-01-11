@@ -1,3 +1,12 @@
+// Extend package flag with internal storage and generate config file
+// support.
+//
+// Motivation:
+//   1. option should be declared once, then used everywhere with
+//      clear reference.
+//   2. to prevent create _hidden_ options, there should be a way to
+//      list all supported options with description.
+//
 package option
 
 import (
@@ -12,6 +21,7 @@ import (
 	"time"
 )
 
+// struct to hold internal context
 type Option struct {
 	name  string
 	set   *flag.FlagSet
@@ -19,6 +29,7 @@ type Option struct {
 	cli   map[string]struct{}
 }
 
+// initialization helper
 func NewOption(name string) *Option {
 	return &Option{
 		name:  name,
@@ -92,10 +103,14 @@ func (o *Option) GetString(name string) string {
 	return *o.store[name].(*string)
 }
 
+// parse option from args
 func (o *Option) Parse(args []string) error {
 	return o.set.Parse(args)
 }
 
+// load option from config file. The format of this file is:
+//   # comment started by hash tag
+//   key = value
 func (o *Option) LoadConfig(name string) error {
 	f, err := os.Open(name)
 	if err != nil {
@@ -162,6 +177,21 @@ func (o *Option) Defaults() string {
 	return b.String()
 }
 
+// dump current option set with their values converted to string
+func (o *Option) All() map[string]string {
+	m := make(map[string]string)
+
+	f := func(f *flag.Flag) {
+		if _, ok := o.cli[f.Name]; ok {
+			return
+		}
+		m[f.Name] = f.Value.String()
+	}
+	o.set.VisitAll(f)
+	return m
+}
+
+// global default option context
 var Default = NewOption(path.Base(os.Args[0]))
 
 func Bool(name string, value bool, usage string) {
@@ -244,4 +274,8 @@ func CliOnly(keys []string) {
 // dump out default config file
 func Defaults() string {
 	return Default.Defaults()
+}
+
+func All() map[string]string {
+	return Default.All()
 }

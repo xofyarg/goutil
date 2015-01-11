@@ -8,8 +8,8 @@ import (
 	"syscall"
 )
 
-// environment variable used to distinguish parent/child. Can be set
-// before calling Daemon.
+// environment variable used to distinguish parent/child. The name can
+// be changed before calling Start.
 var DaemonEnv = "_GODAEMON"
 
 // Simulate daemon(3). Chdir to "/" if nochdir is false, close
