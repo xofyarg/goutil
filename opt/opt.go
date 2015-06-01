@@ -1,12 +1,41 @@
-// struct based option parse library.
-// use field type and tag to specify property, e.g.:
+// Struct based option parse library which use field type and tag to specify property.
 //
-// type option struct {
-// 	OptionA string        `usage:"" default:""`
-// 	OptionB int           `usage:"an int option" default:"10"`
-// 	OptionC time.Duration `usage:"base type is int64, so we need derive here" derive:"time.Duration" default:"1h1m"`
-// 	OptionD bool          `usage:"can only be used in command line" nocfg:"true" default:"false"`
-// }
+// Supported base types:     bool, int, int64, uint, uint64, float64, string, struct
+//
+// Supported inferred types: time.Duration
+//
+// Supported tags:
+//   usage:     Message shows in help and config comment.
+//   default:   String represented default value.
+//   name:      Symbol to use instead of string inferred from field name. Rule to generate name is
+//              adding "Sep" char between CamelCase names or replace "Breaker" with "Sep".
+//   nocfg:     Option can only be used in command line, will not load from/dump into config files.
+//
+// example usage:
+//   type myOption struct {
+//       AString string      `usage:"a simple option" default:"hello"`
+//       MyIP string         `name:"my.ip" usage:"overwrite default name"`
+//       OptionC bool        `usage:"can only be used in command line" nocfg:"true" default:"false"`
+//   }
+//
+//   c := new(myOption)
+//   o, err := opt.New(c)
+//   if err != nil {
+//       log.Fatal(err)
+//   }
+//
+//   // load option from command line
+//   o.Parse(os.Args[1:])
+//
+//   // or load from config file
+//   o.Load("~/.my.conf")
+//
+//   // dump config to stdout
+//   fmt.Println(o.Defaults())
+//
+//   // access config values
+//   fmt.Printf("a.string: %s\n", c.AString)
+//
 package opt
 
 import (
@@ -25,7 +54,8 @@ import (
 )
 
 const (
-	Sep = '.'
+	Sep     = '.'  // separator used to generate option name
+	Breaker = "_." // when to break field name into parts additional to upper letter
 )
 
 // Opt is a underlying structer for parser.
@@ -35,16 +65,19 @@ type Opt struct {
 	initialized bool
 }
 
-// NewOpt create a new option parser context. The argument needs to be
+// New create a new option parser context. The argument needs to be
 // a struct describing each option.
-func NewOpt(s interface{}) *Opt {
+func New(s interface{}) (*Opt, error) {
 	o := &Opt{
 		f:     flag.NewFlagSet(path.Base(os.Args[0]), flag.ExitOnError),
 		nocfg: make(map[string]struct{}),
 	}
-	o.init(s, "")
+	err := o.init(s, "")
+	if err != nil {
+		return nil, err
+	}
 	o.initialized = true
-	return o
+	return o, nil
 }
 
 // Parse deal with command line arguments. Most common use is
@@ -73,7 +106,9 @@ func (o *Opt) Defaults() string {
 		if _, ok := o.nocfg[f.Name]; ok {
 			return
 		}
-		b.WriteString(fmt.Sprintf("# %s\n", f.Usage))
+		if f.Usage != "" {
+			b.WriteString(fmt.Sprintf("# %s\n", f.Usage))
+		}
 		b.WriteString(fmt.Sprintf("%s = %s\n", f.Name, f.DefValue))
 	}
 	o.f.VisitAll(f)
@@ -127,7 +162,7 @@ func (o *Opt) Load(fname string) error {
 	return nil
 }
 
-func (o *Opt) init(des interface{}, prefix string) {
+func (o *Opt) init(des interface{}, prefix string) error {
 	var v reflect.Value
 	for {
 		var ok bool
@@ -145,7 +180,7 @@ func (o *Opt) init(des interface{}, prefix string) {
 	}
 
 	if v.Kind() != reflect.Struct {
-		panic("invalid argument")
+		return errors.New("invalid argument, option description needs to be a struct")
 	}
 
 	for i := 0; i < v.NumField(); i++ {
@@ -155,16 +190,19 @@ func (o *Opt) init(des interface{}, prefix string) {
 			continue
 		}
 
-		//fmt.Printf("%#v\n", field)
-		name := normalize(field.Name)
+		// parse tags
+		name := field.Tag.Get("name")
+		usage := field.Tag.Get("usage")
+		def := field.Tag.Get("default")
+		nocfg := field.Tag.Get("nocfg")
+
+		if name == "" {
+			name = normalize(field.Name)
+		}
+
 		if prefix != "" {
 			name = fmt.Sprintf("%s.%s", prefix, name)
 		}
-
-		usage := field.Tag.Get("usage")
-		derive := field.Tag.Get("derive")
-		def := field.Tag.Get("default")
-		nocfg := field.Tag.Get("nocfg")
 
 		ptr := unsafe.Pointer(item.UnsafeAddr())
 		switch item.Kind() {
@@ -173,28 +211,30 @@ func (o *Opt) init(des interface{}, prefix string) {
 		case reflect.Int:
 			o.f.IntVar((*int)(ptr), name, int(item.Int()), usage)
 		case reflect.Int64:
-			if derive == "time.Duration" {
+			switch item.Type().String() {
+			case "time.Duration":
 				o.f.DurationVar((*time.Duration)(ptr), name, time.Duration(item.Int()), usage)
-			} else {
+			default:
 				o.f.Int64Var((*int64)(ptr), name, item.Int(), usage)
 			}
-		case reflect.Int8, reflect.Int16, reflect.Int32:
-			panic("not implemented")
 		case reflect.Uint:
 			o.f.UintVar((*uint)(ptr), name, uint(item.Uint()), usage)
 		case reflect.Uint64:
 			o.f.Uint64Var((*uint64)(ptr), name, item.Uint(), usage)
-		case reflect.Uint8, reflect.Uint16, reflect.Uint32:
-			panic("not implemented")
-		case reflect.Float32:
-			panic("not implemented")
 		case reflect.Float64:
 			o.f.Float64Var((*float64)(ptr), name, item.Float(), usage)
 		case reflect.String:
 			o.f.StringVar((*string)(ptr), name, item.String(), usage)
 		case reflect.Struct:
 			o.init(item, name)
+		case reflect.Int8, reflect.Int16, reflect.Int32:
+			fallthrough
+		case reflect.Uint8, reflect.Uint16, reflect.Uint32:
+			fallthrough
+		case reflect.Float32:
+			fallthrough
 		default:
+			return fmt.Errorf("parsing of type %s(%s) not implemented", item.Type(), item.Kind())
 		}
 
 		if def != "" {
@@ -207,6 +247,7 @@ func (o *Opt) init(des interface{}, prefix string) {
 			o.nocfg[name] = struct{}{}
 		}
 	}
+	return nil
 }
 
 func normalize(s string) string {
@@ -219,7 +260,7 @@ func normalize(s string) string {
 		switch {
 		case i == 0:
 			b = append(b, c)
-		case c == '_' || c == '.':
+		case strings.ContainsRune(Breaker, c):
 			b = append(b, Sep)
 		case unicode.IsUpper(c):
 			b = append(b, Sep)
