@@ -256,17 +256,25 @@ func normalize(s string) string {
 	}
 
 	var b []rune
+	var cont bool
 	for i, c := range s {
 		switch {
 		case i == 0:
 			b = append(b, c)
 		case strings.ContainsRune(Breaker, c):
-			b = append(b, Sep)
+			if !cont {
+				b = append(b, Sep)
+				cont = true
+			}
 		case unicode.IsUpper(c):
-			b = append(b, Sep)
+			if !cont {
+				b = append(b, Sep)
+			}
 			b = append(b, c)
+			cont = false
 		default:
 			b = append(b, c)
+			cont = false
 		}
 	}
 	return strings.ToLower(string(b))
