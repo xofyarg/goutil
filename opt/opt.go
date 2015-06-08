@@ -89,6 +89,11 @@ func (o *Opt) Parse(arg []string) error {
 	return o.f.Parse(arg)
 }
 
+// Args returns the non-flag arguments from underlying flagset.
+func (o *Opt) Args() []string {
+	return o.f.Args()
+}
+
 // Defaults print all the options as while as their default value as
 // the format of loadable configuration file to stdout.
 func (o *Opt) Defaults() string {
