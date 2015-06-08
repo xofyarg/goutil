@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	olog "log"
+	"os"
 	"path"
 	"runtime"
 	"strings"
@@ -99,6 +100,7 @@ func Debug(v ...interface{}) {
 // log fatal message
 func (l *Logger) Fatal(v ...interface{}) {
 	l.log(fatal, v...)
+	os.Exit(1)
 }
 
 // log warnning message
