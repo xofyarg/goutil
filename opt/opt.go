@@ -124,6 +124,10 @@ func (o *Opt) Defaults() string {
 //   # comment started by hash tag
 //   key = value
 func (o *Opt) Load(fname string) error {
+	return o.LoadFile(fname, true)
+}
+
+func (o *Opt) LoadFile(fname string, overwrite bool) error {
 	if !o.initialized {
 		return errors.New("not initialized")
 	}
@@ -158,6 +162,11 @@ func (o *Opt) Load(fname string) error {
 		v := o.f.Lookup(key)
 		if v == nil {
 			return fmt.Errorf("flag provided but not defined: %s", key)
+		}
+
+		// ignore already set option(has value other than default)
+		if !overwrite && v.Value.String() != v.DefValue {
+			continue
 		}
 
 		if err := v.Value.Set(value); err != nil {
