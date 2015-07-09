@@ -1,4 +1,5 @@
-// Data storage for common geoip database, can be used to merge different databases.
+// Package geoip is a data storage for common IPv4 geoip database, can
+// be used to merge different databases.
 //
 // Basic usage:
 //   1. create a empty table: NewTable
@@ -71,7 +72,7 @@ func NewRecordFromRange(a, b net.IP, v Payload) []*Record {
 
 	var rs []*Record
 	ns := rangeToSubnet(low, high)
-	for i, _ := range ns {
+	for i := range ns {
 		rs = append(rs, &Record{i: ns[i], v: v})
 	}
 	return rs
@@ -134,14 +135,3 @@ func sizeToMask(n int) uint32 {
 	return ^uint32(0) << uint(32-n)
 }
 
-func vequal(a, b Payload) bool {
-	if a == nil && b == nil {
-		return true
-	}
-
-	if a == nil || b == nil {
-		return false
-	}
-
-	return a.Equal(b)
-}

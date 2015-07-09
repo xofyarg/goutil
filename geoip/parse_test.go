@@ -36,11 +36,11 @@ func TestRecordFromRange1(t *testing.T) {
 type ps string
 
 func (p ps) Equal(t Payload) bool {
-	if s, ok := t.(ps); !ok {
+	s, ok := t.(ps)
+	if !ok {
 		return false
-	} else {
-		return p == s
 	}
+	return p == s
 }
 
 func (p ps) String() string {

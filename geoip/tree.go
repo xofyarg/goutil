@@ -37,6 +37,7 @@ func (t *Tree) Add(r *Record, overwrite bool) {
 		msb := (prefix & mask) >> 31
 		prefix <<= 1
 
+		// for Target branch and the Other branch
 		var tbranch, obranch **node
 		if msb == 0 {
 			tbranch = &n.l
@@ -162,6 +163,8 @@ func (t *Tree) walk(cb func(r *Record, ud interface{}), ud interface{}) {
 	f(&t.root, 0, 0)
 }
 
+// compress cut off the useless nodes from a subtree n, returns the
+// number of changes.
 func compress(n *node) int64 {
 	if !n.leaf {
 		panic("must be a leaf")
@@ -190,17 +193,19 @@ func compress(n *node) int64 {
 	return delta
 }
 
+// fill create missing leaves in the subtree n with payload v. Return
+// number of nodes changed and the clear(subtree is no need to change)
+// flag.
 func fill(n *node, v Payload) (int64, bool) {
 	f := func(n *node, v Payload) (int64, bool) {
 		if n == nil {
 			return 0, true
 		} else if n.leaf {
 			// compare, return merge result
-			if n.v == v {
+			if vequal(n.v, v) {
 				return -1, true
-			} else {
-				return 0, false
 			}
+			return 0, false
 		} else {
 			return fill(n, v)
 		}
@@ -231,4 +236,16 @@ func fill(n *node, v Payload) (int64, bool) {
 	}
 
 	return dl + dr, false
+}
+
+func vequal(a, b Payload) bool {
+	if a == nil && b == nil {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	return a.Equal(b)
 }
