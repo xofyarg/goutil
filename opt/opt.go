@@ -1,15 +1,20 @@
-// Struct based option parse library which use field type and tag to specify property.
+// Package opt uses struct based option parse library which use field
+// type and tag to specify property.
 //
-// Supported base types:     bool, int, int64, uint, uint64, float64, string, struct
+// Supported base types:
+//     bool, int, int64, uint, uint64, float64, string, struct
 //
-// Supported inferred types: time.Duration
+// Supported inferred types:
+//     time.Duration
 //
 // Supported tags:
 //   usage:     Message shows in help and config comment.
 //   default:   String represented default value.
-//   name:      Symbol to use instead of string inferred from field name. Rule to generate name is
-//              adding "Sep" char between CamelCase names or replace "Breaker" with "Sep".
-//   nocfg:     Option can only be used in command line, will not load from/dump into config files.
+//   name:      Symbol to use instead of string inferred from field
+//              name. Rule to generate name is adding "Sep" char
+//              between CamelCase names or replace "Breaker" with "Sep".
+//   nocfg:     Option can only be used in command line, will not
+//              load from/dump into config files.
 //
 // example usage:
 //   type myOption struct {
@@ -54,8 +59,10 @@ import (
 )
 
 const (
-	Sep     = '.'  // separator used to generate option name
-	Breaker = "_." // when to break field name into parts additional to upper letter
+	// Sep is the separator in option name
+	Sep = '.'
+	// Breaker is a list of chars to break words
+	Breaker = "_."
 )
 
 // Opt is a underlying structer for parser.
@@ -127,6 +134,8 @@ func (o *Opt) Load(fname string) error {
 	return o.LoadFile(fname, true)
 }
 
+// LoadFile works like Load if overwrite is true, otherwise, it ignore
+// the options which already has value other than default.
 func (o *Opt) LoadFile(fname string, overwrite bool) error {
 	if !o.initialized {
 		return errors.New("not initialized")
