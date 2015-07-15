@@ -49,6 +49,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"reflect"
@@ -131,21 +132,20 @@ func (o *Opt) Defaults() string {
 //   # comment started by hash tag
 //   key = value
 func (o *Opt) Load(fname string) error {
-	return o.LoadFile(fname, true)
-}
-
-// LoadFile works like Load if overwrite is true, otherwise, it ignore
-// the options which already has value other than default.
-func (o *Opt) LoadFile(fname string, overwrite bool) error {
-	if !o.initialized {
-		return errors.New("not initialized")
-	}
-
 	f, err := os.Open(fname)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
+	return o.LoadConfig(f, true)
+}
+
+// LoadConfig works like Load if overwrite is true, otherwise, it ignore
+// the options which already has value other than default.
+func (o *Opt) LoadConfig(f io.Reader, overwrite bool) error {
+	if !o.initialized {
+		return errors.New("not initialized")
+	}
 
 	s := bufio.NewScanner(f)
 
