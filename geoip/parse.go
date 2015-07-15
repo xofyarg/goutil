@@ -28,7 +28,7 @@ func (c *cidr) String() string {
 		c.size)
 }
 
-// Payload is an abstract data structer bound to records, used to
+// Payload is an abstract data structure bound to records, used to
 // store geo information of a set of IPs.
 type Payload interface {
 	Equal(Payload) bool
@@ -50,7 +50,7 @@ func (r *Record) String() string {
 	return fmt.Sprintf("%s (-)", &r.i)
 }
 
-// NewRecordFromCIDR convert an IPNet structer into a Record.
+// NewRecordFromCIDR convert an IPNet structure into a Record.
 func NewRecordFromCIDR(i *net.IPNet, v Payload) *Record {
 	size, _ := i.Mask.Size()
 	prefix := ipToNum(i.IP) & sizeToMask(size)

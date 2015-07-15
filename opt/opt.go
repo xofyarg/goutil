@@ -66,7 +66,7 @@ const (
 	Breaker = "_."
 )
 
-// Opt is a underlying structer for parser.
+// Opt is a underlying structure for parser.
 type Opt struct {
 	f           *flag.FlagSet
 	nocfg       map[string]struct{}
