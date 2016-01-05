@@ -13,14 +13,14 @@
 //   name:      Symbol to use instead of string inferred from field
 //              name. Rule to generate name is adding "Sep" char
 //              between CamelCase names or replace "Breaker" with "Sep".
-//   nocfg:     Option can only be used in command line, will not
+//   cli:       Option can only be used in command line, will not
 //              load from/dump into config files.
 //
 // example usage:
 //   type myOption struct {
 //       AString string      `usage:"a simple option" default:"hello"`
 //       MyIP string         `name:"my.ip" usage:"overwrite default name"`
-//       OptionC bool        `usage:"can only be used in command line" nocfg:"true" default:"false"`
+//       OptionC bool        `usage:"can only be used in command line" cli:"true" default:"false"`
 //   }
 //
 //   c := new(myOption)
@@ -69,7 +69,7 @@ const (
 // Opt is a underlying structure for parser.
 type Opt struct {
 	f           *flag.FlagSet
-	nocfg       map[string]struct{}
+	cli         map[string]struct{}
 	initialized bool
 }
 
@@ -77,8 +77,8 @@ type Opt struct {
 // a struct describing each option.
 func New(s interface{}) (*Opt, error) {
 	o := &Opt{
-		f:     flag.NewFlagSet(path.Base(os.Args[0]), flag.ExitOnError),
-		nocfg: make(map[string]struct{}),
+		f:   flag.NewFlagSet(path.Base(os.Args[0]), flag.ExitOnError),
+		cli: make(map[string]struct{}),
 	}
 	err := o.init(s, "")
 	if err != nil {
@@ -116,7 +116,7 @@ func (o *Opt) Defaults() string {
 		path.Base(os.Args[0])))
 
 	f := func(f *flag.Flag) {
-		if _, ok := o.nocfg[f.Name]; ok {
+		if _, ok := o.cli[f.Name]; ok {
 			return
 		}
 		if f.Usage != "" {
@@ -164,7 +164,7 @@ func (o *Opt) LoadConfig(f io.Reader, overwrite bool) error {
 		value := strings.Trim(parts[1], " '\"")
 
 		// ignore cli only options
-		if _, ok := o.nocfg[key]; ok {
+		if _, ok := o.cli[key]; ok {
 			continue
 		}
 
@@ -217,7 +217,11 @@ func (o *Opt) init(des interface{}, prefix string) error {
 		name := field.Tag.Get("name")
 		usage := field.Tag.Get("usage")
 		def := field.Tag.Get("default")
-		nocfg := field.Tag.Get("nocfg")
+		cli := field.Tag.Get("cli")
+		if cli == "" {
+			// Compatible with legacy name
+			cli = field.Tag.Get("nocfg")
+		}
 
 		if name == "" {
 			name = normalize(field.Name)
@@ -266,8 +270,8 @@ func (o *Opt) init(des interface{}, prefix string) error {
 				o.f.Set(name, def)
 			}
 		}
-		if nocfg == "true" || nocfg == "1" {
-			o.nocfg[name] = struct{}{}
+		if cli == "true" || cli == "1" {
+			o.cli[name] = struct{}{}
 		}
 	}
 	return nil
