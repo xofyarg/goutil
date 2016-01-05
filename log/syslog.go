@@ -11,7 +11,7 @@ import (
 
 // write log to syslog with default settings:
 //   syslog.LOG_INFO|syslog.LOG_USER
-func (l *Logger) UseSyslog() error {
+func (l *logger) UseSyslog() error {
 	l.useSyslog = true
 	if l.w == nil {
 		w, err := syslog.New(syslog.LOG_INFO|syslog.LOG_USER,
@@ -24,14 +24,8 @@ func (l *Logger) UseSyslog() error {
 	return nil
 }
 
-func (l *Logger) writeSyslog(lvl level, v ...interface{}) {
-	var msg string
-	n := len(v)
-	if n == 1 {
-		msg = fmt.Sprintf("%v", v[0])
-	} else {
-		msg = fmt.Sprintf(v[0].(string), v[1:]...)
-	}
+func (l *logger) writeSyslog(lvl level, format string, v ...interface{}) {
+	msg := fmt.Sprintf(format, v...)
 
 	switch lvl {
 	case fatal:

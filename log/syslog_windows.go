@@ -1,10 +1,10 @@
 package log
 
-func (l *Logger) UseSyslog() error {
+func (l *logger) UseSyslog() error {
 	panic("syslog is not supported under windows")
 }
 
-func (l *Logger) writeSyslog(lvl level, v ...interface{}) {
+func (l *logger) writeSyslog(lvl level, format string, v ...interface{}) {
 }
 
 func UseSyslog() error {

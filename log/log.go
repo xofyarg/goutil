@@ -24,6 +24,22 @@ import (
 	"strings"
 )
 
+// general interface for basic logger
+type Logger interface {
+	SetLevel(l string) error
+	Fatal(format string, args ...interface{})
+	Warn(format string, args ...interface{})
+	Info(format string, args ...interface{})
+	Debug(format string, args ...interface{})
+}
+
+// interface used to extend the basic logger
+type LoggerExtend interface {
+	Logger
+	IncNest(n int)
+	UseSyslog() error
+}
+
 type level uint8
 
 const (
@@ -33,6 +49,8 @@ const (
 	info
 	debug
 )
+
+const defaultNest = 2
 
 var (
 	ErrInvLogLevel = errors.New("invalid log level")
@@ -47,7 +65,7 @@ var levelStr = map[level]string{
 	debug: "DBUG",
 }
 
-type Logger struct {
+type logger struct {
 	level     level
 	useSyslog bool
 	w         interface{} // syslog writer
@@ -55,19 +73,30 @@ type Logger struct {
 }
 
 // create a logger with different destination and/or log level
-func NewLogger() *Logger {
-	return &Logger{
+func NewLogger() LoggerExtend {
+	return &logger{
 		level:     warn,
 		useSyslog: false,
-		nest:      2,
+		nest:      defaultNest,
 	}
 }
 
-var defaultLogger *Logger
+var defaultLogger LoggerExtend
 
 func init() {
 	defaultLogger = NewLogger()
-	defaultLogger.nest = 3
+	defaultLogger.IncNest(1)
+}
+
+// increase nest level for default logger
+func IncNest(n int) {
+	defaultLogger.IncNest(n)
+}
+
+// increase nest level for file/line info display. useful when
+// extending the logging module
+func (l *logger) IncNest(n int) {
+	l.nest += n
 }
 
 // set log level for default logger.
@@ -78,77 +107,75 @@ func SetLevel(lvl string) error {
 }
 
 // log fatal message for default logger
-func Fatal(v ...interface{}) {
-	defaultLogger.Fatal(v...)
+func Fatal(format string, v ...interface{}) {
+	defaultLogger.Fatal(format, v...)
 }
 
 // log warning message for default logger
-func Warn(v ...interface{}) {
-	defaultLogger.Warn(v...)
+func Warn(format string, v ...interface{}) {
+	defaultLogger.Warn(format, v...)
 }
 
 // log info message for default logger
-func Info(v ...interface{}) {
-	defaultLogger.Info(v...)
+func Info(format string, v ...interface{}) {
+	defaultLogger.Info(format, v...)
 }
 
 // log debug message for default logger
-func Debug(v ...interface{}) {
-	defaultLogger.Debug(v...)
+func Debug(format string, v ...interface{}) {
+	defaultLogger.Debug(format, v...)
 }
 
 // log fatal message
-func (l *Logger) Fatal(v ...interface{}) {
-	l.log(fatal, v...)
+func (l *logger) Fatal(format string, v ...interface{}) {
+	l.log(fatal, format, v...)
 	os.Exit(1)
 }
 
 // log warnning message
-func (l *Logger) Warn(v ...interface{}) {
-	l.log(warn, v...)
+func (l *logger) Warn(format string, v ...interface{}) {
+	l.log(warn, format, v...)
 }
 
 // log info message
-func (l *Logger) Info(v ...interface{}) {
-	l.log(info, v...)
+func (l *logger) Info(format string, v ...interface{}) {
+	l.log(info, format, v...)
 }
 
 // log debug message
-func (l *Logger) Debug(v ...interface{}) {
-	l.log(debug, v...)
+func (l *logger) Debug(format string, v ...interface{}) {
+	l.log(debug, format, v...)
 }
 
-func (l *Logger) log(lvl level, v ...interface{}) {
+func (l *logger) log(lvl level, format string, v ...interface{}) {
 	if lvl > l.level {
 		return
 	}
 
-	// l.useSyslog
 	if l.useSyslog {
-		l.writeSyslog(lvl, v...)
+		l.writeSyslog(lvl, format, v...)
 	} else {
 		var preamble string
 		if lvl == debug {
-			_, file, line, _ := runtime.Caller(l.nest)
+			_, file, line, ok := runtime.Caller(l.nest)
+			if !ok {
+				file = "???"
+				line = 1
+			}
 			preamble = fmt.Sprintf("[%s %s:%d] ", levelStr[lvl],
 				path.Base(file), line)
 		} else {
 			preamble = fmt.Sprintf("[%s] ", levelStr[lvl])
 		}
 
-		n := len(v)
-		if n == 1 {
-			olog.Printf(preamble+"%v", v[0])
-		} else {
-			olog.Printf(preamble+v[0].(string), v[1:]...)
-		}
+		olog.Printf(preamble+format, v...)
 	}
 }
 
 // set log level for logger l.
 //
 // lvl can be one of this: "debug", "info", "warn", "fatal"
-func (l *Logger) SetLevel(lvl string) error {
+func (l *logger) SetLevel(lvl string) error {
 	switch strings.ToLower(lvl) {
 	case "fatal":
 		l.level = fatal
