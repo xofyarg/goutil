@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	olog "log"
-	"os"
 	"path"
 	"runtime"
 	"strings"
@@ -27,10 +26,10 @@ import (
 // general interface for basic logger
 type Logger interface {
 	SetLevel(l string) error
-	Fatal(format string, args ...interface{})
-	Warn(format string, args ...interface{})
-	Info(format string, args ...interface{})
-	Debug(format string, args ...interface{})
+	Fatalf(format string, args ...interface{})
+	Warnf(format string, args ...interface{})
+	Infof(format string, args ...interface{})
+	Debugf(format string, args ...interface{})
 }
 
 // interface used to extend the basic logger
@@ -107,43 +106,42 @@ func SetLevel(lvl string) error {
 }
 
 // log fatal message for default logger
-func Fatal(format string, v ...interface{}) {
-	defaultLogger.Fatal(format, v...)
+func Fatalf(format string, v ...interface{}) {
+	defaultLogger.Fatalf(format, v...)
 }
 
 // log warning message for default logger
-func Warn(format string, v ...interface{}) {
-	defaultLogger.Warn(format, v...)
+func Warnf(format string, v ...interface{}) {
+	defaultLogger.Warnf(format, v...)
 }
 
 // log info message for default logger
-func Info(format string, v ...interface{}) {
-	defaultLogger.Info(format, v...)
+func Infof(format string, v ...interface{}) {
+	defaultLogger.Infof(format, v...)
 }
 
 // log debug message for default logger
-func Debug(format string, v ...interface{}) {
-	defaultLogger.Debug(format, v...)
+func Debugf(format string, v ...interface{}) {
+	defaultLogger.Debugf(format, v...)
 }
 
 // log fatal message
-func (l *logger) Fatal(format string, v ...interface{}) {
+func (l *logger) Fatalf(format string, v ...interface{}) {
 	l.log(fatal, format, v...)
-	os.Exit(1)
 }
 
 // log warnning message
-func (l *logger) Warn(format string, v ...interface{}) {
+func (l *logger) Warnf(format string, v ...interface{}) {
 	l.log(warn, format, v...)
 }
 
 // log info message
-func (l *logger) Info(format string, v ...interface{}) {
+func (l *logger) Infof(format string, v ...interface{}) {
 	l.log(info, format, v...)
 }
 
 // log debug message
-func (l *logger) Debug(format string, v ...interface{}) {
+func (l *logger) Debugf(format string, v ...interface{}) {
 	l.log(debug, format, v...)
 }
 
